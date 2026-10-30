@@ -136,6 +136,7 @@ const CHARS=[
    skin:"#F0C7A4",hair:"#F1EEE8",acc:"baron",bg:"#7FA6C9",pitch:.9,rate:1,
    persona:"Ты барон Мюнхгаузен, отставной офицер и знаменитый рассказчик. С абсолютной серьёзностью рассказываешь невероятные истории о своих подвигах: полёт на пушечном ядре, как вытащил себя за волосы из болота, половина коня, охота на уток. Обижаешься, если тебе не верят, и называешь себя самым правдивым человеком на свете."},
   {id:"chef",name:"Шеф Марко",tag:"Готовит вместе с тобой, шаг за шагом",
+   greet:{ru:"Скажи шефу, что хочешь приготовить. Таймеры он поставит сам.",it:"Dì allo chef cosa vuoi cucinare. I timer li imposta lui.",en:"Tell the chef what you want to cook. He sets the timers himself."},
    skin:"#E9B98F",hair:"#3B2A20",acc:"chef",bg:"#9CCB8A",pitch:1,rate:1,
    chips:{ru:["Готово, дальше","Повтори","Чем заменить?","Сколько ждать?"],
           it:["Fatto, avanti","Ripeti","Con cosa sostituisco?","Quanto aspetto?"],
@@ -234,13 +235,23 @@ function sysPrompt(){
 async function ask(){
   const key=(store.get("gkey")||$("gkey").value||"").trim();
   if(key){
-    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key="+encodeURIComponent(key),{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({systemInstruction:{parts:[{text:sysPrompt()}]},
-        contents:S.history.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}))})});
-    const j=await r.json();
-    if(!r.ok) throw new Error(j.error?.message||"Gemini ответил ошибкой "+r.status);
-    return j.candidates?.[0]?.content?.parts?.map(p=>p.text).join("")||"…";
+    const models=["gemini-2.5-flash","gemini-flash-latest","gemini-2.5-flash-lite","gemini-flash-lite-latest","gemini-2.0-flash"];
+    const body=JSON.stringify({systemInstruction:{parts:[{text:sysPrompt()}]},
+      contents:S.history.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}))});
+    let lastErr="";
+    for(const model of models){
+      const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),25000);
+      try{
+        const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key),
+          {method:"POST",headers:{"Content-Type":"application/json"},body,signal:ctl.signal});
+        const j=await r.json().catch(()=>({}));clearTimeout(to);
+        if(r.ok){const t=j.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();if(t)return t;lastErr="пустой ответ";continue}
+        lastErr=j.error?.message||("ошибка "+r.status);
+        if(r.status===400&&/API key/i.test(lastErr))throw new Error("Ключ Gemini не подходит. Проверь, что скопировал его целиком.");
+        if(r.status===403)throw new Error("Ключ Gemini не работает (доступ запрещён): "+lastErr);
+      }catch(e){clearTimeout(to);if(e.name==="AbortError"){lastErr="Gemini долго не отвечает";continue}if(/Ключ/.test(e.message))throw e;lastErr=e.message}
+    }
+    throw new Error("Все модели Gemini сейчас заняты, попробуй через минуту. ("+lastErr+")");
   }
   if(sample){
     const msgs=S.history.map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
@@ -334,7 +345,7 @@ setInterval(tick,250);
 
 /* ---------- chat ---------- */
 function add(cls,text){const d=document.createElement("div");d.className="msg "+cls;d.textContent=text;$("log").appendChild(d);$("log").scrollTop=1e9;return d}
-const GREET={ru:"Привет! Скажи что-нибудь. Шефу скажи, что хочешь приготовить.",it:"Ciao! Dimmi qualcosa. Allo chef dì cosa vuoi cucinare.",en:"Hi! Say something. Tell the chef what you want to cook."};
+const GREET={ru:"Привет! Скажи что-нибудь.",it:"Ciao! Dimmi qualcosa.",en:"Hi! Say something."};
 const PH={ru:"Напиши сообщение…",it:"Scrivi un messaggio…",en:"Type a message…"};
 function openChat(){
   $("pick").hidden=true;$("chat").hidden=false;
