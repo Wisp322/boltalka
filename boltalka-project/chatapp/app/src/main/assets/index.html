@@ -1,0 +1,392 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style></head><body><title>Болталка с персонажами</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;700&display=swap">
+<style>
+/* Layout: one-column phone app — picker screen, then chat screen with a big talking face on top */
+:root{
+  --bg:#ECEEF3; --surface:#FFFFFF; --fg:#1A1D2A; --muted:#606678; --line:#D6DAE3;
+  --accent:#E8572A; --accent-fg:#FFFFFF; --bubble-me:#1A1D2A; --bubble-me-fg:#F4F5F8;
+  --display:"Unbounded",system-ui,sans-serif; --body:"Manrope",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12141C; --surface:#1C1F2B; --fg:#ECEEF4; --muted:#9AA0B2; --line:#2C3040;
+  --accent:#FF7A4D; --accent-fg:#1A0E08; --bubble-me:#ECEEF4; --bubble-me-fg:#12141C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141C; --surface:#1C1F2B; --fg:#ECEEF4; --muted:#9AA0B2; --line:#2C3040;
+  --accent:#FF7A4D; --accent-fg:#1A0E08; --bubble-me:#ECEEF4; --bubble-me-fg:#12141C; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:520px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+h1{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1.15;margin:20px 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 18px;line-height:1.45}
+.label{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:12px;text-align:left;
+  font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card[aria-pressed="true"]{border-color:var(--accent)}
+.card svg{width:64px;height:64px}
+.card b{font-family:var(--display);font-weight:500;font-size:.95rem}
+.card span{font-size:.8rem;color:var(--muted);line-height:1.35}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:90px;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--surface);
+  color:var(--fg);font:inherit;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+select,input[type=text],input[type=password]{width:100%;padding:11px 12px;border-radius:12px;border:2px solid var(--line);
+  background:var(--surface);color:var(--fg);font:inherit;box-sizing:border-box}
+.go{margin:22px 0 28px;padding:15px;border-radius:14px;border:0;background:var(--accent);color:var(--accent-fg);
+  font-family:var(--display);font-weight:700;font-size:1rem;cursor:pointer;width:100%}
+.hint{font-size:.8rem;color:var(--muted);margin-top:6px;line-height:1.4}
+details{margin-top:14px}summary{cursor:pointer;color:var(--muted);font-size:.85rem}
+/* chat */
+.top{display:flex;align-items:center;gap:10px;padding-top:12px}
+.back{border:0;background:none;color:var(--fg);font:inherit;font-size:1.4rem;cursor:pointer;padding:4px 8px}
+.top b{font-family:var(--display);font-weight:500}
+.top small{display:block;color:var(--muted);font-size:.75rem}
+.stage{display:flex;justify-content:center;padding:8px 0}
+.stage svg{width:min(46vw,190px);height:auto}
+.log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 0 10px;min-height:0}
+.msg{max-width:82%;padding:10px 13px;border-radius:16px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.bot{background:var(--surface);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.me{background:var(--bubble-me);color:var(--bubble-me-fg);align-self:flex-end;border-bottom-right-radius:4px}
+.msg.sys{align-self:center;color:var(--muted);font-size:.8rem;background:none;text-align:center}
+.hf{display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.hf input{width:20px;height:20px;accent-color:var(--accent)}
+.timers{display:flex;flex-direction:column;gap:6px;padding-top:8px}
+.timer{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;
+  background:var(--surface);border:2px solid var(--line)}
+.timer .fill{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.18;transition:width .25s linear}
+.timer .t{font-family:var(--display);font-weight:700;font-size:1.35rem;font-variant-numeric:tabular-nums;position:relative}
+.timer .n{flex:1;min-width:0;position:relative;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timer button{position:relative;border:0;background:none;color:var(--fg);font:inherit;font-weight:700;cursor:pointer;padding:6px 8px;border-radius:8px}
+.timer.done{border-color:var(--accent);animation:pulse 1s infinite}
+.timer.done .fill{opacity:.35}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-top:4px}
+.chips button{flex:none;padding:8px 12px;border-radius:999px;border:2px solid var(--line);background:var(--surface);
+  color:var(--fg);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}
+.bar{display:flex;gap:8px;padding:8px 0 14px}
+.bar input{flex:1;min-width:0}
+.round{flex:none;width:48px;height:48px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-fg);
+  font-size:1.2rem;cursor:pointer;display:grid;place-items:center}
+.round.alt{background:var(--surface);color:var(--fg);border:2px solid var(--line)}
+.round.rec{animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.round.rec{animation:none}}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="app">
+  <section id="pick">
+    <h1>С кем поболтаем?</h1>
+    <p class="sub">Выбери персонажа и язык. Персонаж отвечает текстом и голосом.</p>
+
+    <div class="label">Персонаж</div>
+    <div class="grid" id="chars"></div>
+
+    <div class="label">Язык</div>
+    <div class="seg" id="langs"></div>
+
+    <div class="label">Голос</div>
+    <select id="voice"></select>
+    <p class="hint" id="voiceHint">Голоса берутся из твоего телефона. Если списка нет, нажми «Начать», голос подтянется сам.</p>
+
+    <details id="keyBox">
+      <summary>Ключ Gemini (для версии-приложения)</summary>
+      <div class="label">API-ключ</div>
+      <input type="password" id="gkey" placeholder="AIza...">
+      <p class="hint">Здесь, внутри Claude, ключ не нужен. Он пригодится, когда упакуем страницу в APK.</p>
+    </details>
+
+    <button class="go" id="start">Начать разговор</button>
+  </section>
+
+  <section id="chat" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div class="top">
+      <button class="back" id="back" aria-label="Назад">←</button>
+      <div style="flex:1;min-width:0"><b id="cName"></b><small id="cLang"></small></div>
+      <label class="hf" id="hfWrap" hidden><input type="checkbox" id="hf"> Без рук</label>
+    </div>
+    <div class="timers" id="timers" hidden></div>
+    <div class="stage" id="stage"></div>
+    <div class="log" id="log"></div>
+    <div class="chips" id="chips" hidden></div>
+    <form class="bar" id="form">
+      <button type="button" class="round alt" id="mic" aria-label="Говорить" hidden>🎤</button>
+      <input type="text" id="text" placeholder="Напиши сообщение…" autocomplete="off">
+      <button class="round" id="send" aria-label="Отправить">➤</button>
+    </form>
+  </section>
+</div>
+
+<script>
+const LANGS={
+  ru:{name:"Русский",code:"ru-RU",rule:"Отвечай ТОЛЬКО на русском языке."},
+  it:{name:"Italiano",code:"it-IT",rule:"Rispondi SOLO in italiano."},
+  en:{name:"English",code:"en-US",rule:"Reply ONLY in English."}
+};
+const CHARS=[
+  {id:"dracula",name:"Граф Дракула",tag:"Галантный вампир из Трансильвании",
+   skin:"#E4E0EA",hair:"#1E1A24",acc:"dracula",bg:"#8E2A3A",pitch:.6,rate:.85,
+   persona:"Ты граф Дракула из романа Брэма Стокера, древний аристократ из замка в Трансильвании. Говоришь торжественно, вежливо и зловеще-галантно, с мрачным юмором. Обожаешь ночь, не выносишь чеснок и солнечный свет, приглашаешь собеседника в гости в свой замок."},
+  {id:"pinocchio",name:"Пиноккио",tag:"Деревянный мальчишка, который любит приврать",
+   skin:"#E2A867",hair:"#7A4A22",acc:"pinocchio",bg:"#F2D27A",pitch:1.5,rate:1.1,
+   persona:"Ты Пиноккио из сказки Карло Коллоди, озорной деревянный мальчишка, которого вырезал папа Джеппетто. Хвастливый, весёлый, ленишься ходить в школу, иногда привираешь, и тогда сразу смущённо признаёшься, что у тебя опять вырос нос. Вспоминаешь Говорящего Сверчка, Лису и Кота."},
+  {id:"baron",name:"Барон Мюнхгаузен",tag:"Самый правдивый человек на свете",
+   skin:"#F0C7A4",hair:"#F1EEE8",acc:"baron",bg:"#7FA6C9",pitch:.9,rate:1,
+   persona:"Ты барон Мюнхгаузен, отставной офицер и знаменитый рассказчик. С абсолютной серьёзностью рассказываешь невероятные истории о своих подвигах: полёт на пушечном ядре, как вытащил себя за волосы из болота, половина коня, охота на уток. Обижаешься, если тебе не верят, и называешь себя самым правдивым человеком на свете."},
+  {id:"chef",name:"Шеф Марко",tag:"Готовит вместе с тобой, шаг за шагом",
+   skin:"#E9B98F",hair:"#3B2A20",acc:"chef",bg:"#9CCB8A",pitch:1,rate:1,
+   chips:{ru:["Готово, дальше","Повтори","Чем заменить?","Сколько ждать?"],
+          it:["Fatto, avanti","Ripeti","Con cosa sostituisco?","Quanto aspetto?"],
+          en:["Done, next","Repeat","What can I use instead?","How long?"]},
+   rules:"Правила: говори просто и по-дружески, как в живом разговоре вслух. Без смайликов и без markdown (никаких звёздочек и решёток). Список ингредиентов можно давать короткими строками. Никогда не говори, что ты ИИ.",
+   persona:"Ты Шеф Марко, весёлый итальянский шеф-повар из Болоньи. Ты готовишь ВМЕСТЕ с собеседником прямо сейчас, в реальном времени, он стоит у плиты. Порядок работы: 1) если не ясно, спроси, что он хочет приготовить и на сколько человек; 2) перечисли все ингредиенты с точными количествами и посудой, спроси, всё ли есть, и предложи замену тому, чего нет; 3) потом давай СТРОГО ОДИН шаг за раз: что сделать, сколько по времени, огонь, как понять что готово. После каждого шага жди, пока он скажет 'готово' или 'дальше'. Никогда не выдавай весь рецепт сразу. Если он спрашивает — отвечай и возвращайся к текущему шагу. Подбадривай и шути. В конце скажи, как подать блюдо. ТАЙМЕРЫ: в этом приложении есть кухонный таймер на экране. Когда в шаге нужно что-то варить, жарить, печь или ждать определённое время, либо собеседник просит поставить таймер, добавь В САМЫЙ КОНЕЦ ответа тег вида [TIMER 10:00 | паста] (минуты:секунды | короткое название). Таймер включится сам, вслух тег не произносится, поэтому просто скажи что-то вроде 'ставлю таймер на 10 минут'. Можно несколько таймеров. Не ставь таймер без причины. Собеседник может управлять таймерами голосом, для этого тоже ставь теги в конце ответа: добавить время [TIMER_ADD 2:00 | паста], убавить время [TIMER_SUB 1:00 | паста], убрать таймер [TIMER_STOP | паста], убрать все [TIMER_STOP | все]. Название бери из списка активных таймеров. Если таймер один, а название не сказано, меняй его. Коротко подтверди вслух, что сделал."},
+  {id:"emily",name:"Emily",tag:"Девушка из Лондона, болтаете по-английски",
+   skin:"#F3D2B8",hair:"#B5652E",acc:"emily",bg:"#E7B7D0",pitch:1.1,rate:.85,forceLang:"en",
+   greet:{ru:"Болтай с Эмили по-английски. Ошибки она мягко поправит. Не знаешь слово, спроси по-русски.",it:"Parla o scrivi in inglese. Emily correggerà gli errori con gentilezza. Se non sai una parola, chiedi in italiano.",en:"Speak or type in English. Emily will gently fix your mistakes."},
+   chips:{en:["Say it slower","Give me a topic","Check my sentence","What does it mean?"]},
+   rules:"Rules: speak simple English (level A2-B1), short sentences, 2-4 sentences per reply, like a real spoken conversation. No emojis, no markdown. Never say you are an AI.",
+   persona:"You are Emily, a cheerful 25-year-old woman from London who works in a bookshop and loves films, travel, cooking and football. You are chatting as a friendly conversation partner (not a teacher) with a guy who speaks Russian and Italian and wants to practise SPOKEN English. Talk like a real friend: share small stories about your own day and opinions. Keep the conversation going: react to what he says, then ask him one simple question. If his sentence has a mistake, first answer naturally, then add one short line: 'Small fix: say ... instead of ...'. Fix only the most important mistake. If he writes in Russian or Italian, tell him how to say it in English and ask him to repeat it. If he asks what a word means, explain it very simply in English and give the Russian translation in one short sentence. Suggest everyday topics: food, work in a shop, football, travel, films."}
+];
+const S={handsfree:false,char:CHARS[0],lang:"ru",voiceURI:"",history:[],busy:false};
+const $=id=>document.getElementById(id);
+const lk=()=>S.char.forceLang||S.lang, cur=()=>LANGS[lk()];
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+const LOOK={
+  dracula:{
+    back:`<path d="M24 200 L50 132 L100 168 L150 132 L176 200Z" fill="#B3202E"/><path d="M24 200 L50 132 L62 140 L44 200Z" fill="#1E1A24"/><path d="M176 200 L150 132 L138 140 L156 200Z" fill="#1E1A24"/>`,
+    top:`<path d="M48 100 Q46 46 100 44 Q154 46 152 100 Q146 70 122 64 L100 86 L78 64 Q54 70 48 100Z" fill="#1E1A24"/>`,
+    extra:`<path d="M90 135 l3 9 l3 -9Z M104 135 l3 9 l3 -9Z" fill="#FFFFFF"/>`},
+  pinocchio:{
+    top:`<path d="M50 90 Q50 52 100 50 Q150 52 150 90" fill="#7A4A22"/><path d="M54 76 Q100 56 146 76 L118 6Z" fill="#F4F1EA" stroke="#BDB5A6" stroke-width="2"/>`,
+    extra:`<path d="M102 110 L176 118 L102 126Z" fill="#C98A52" stroke="#9A6234" stroke-width="2"/>`},
+  baron:{
+    back:`<circle cx="46" cy="104" r="15" fill="#F1EEE8"/><circle cx="46" cy="130" r="14" fill="#F1EEE8"/><circle cx="154" cy="104" r="15" fill="#F1EEE8"/><circle cx="154" cy="130" r="14" fill="#F1EEE8"/>`,
+    top:`<path d="M50 86 Q50 54 100 52 Q150 54 150 86" fill="#F1EEE8"/><path d="M28 70 Q100 18 172 70 Q138 56 100 60 Q62 56 28 70Z" fill="#2B3550"/><path d="M40 66 Q100 44 160 66" stroke="#D9B44A" stroke-width="4" fill="none"/>`,
+    extra:`<path d="M100 127 Q82 116 60 128 Q80 130 100 133 Q120 130 140 128 Q118 116 100 127Z" fill="#E6E1D6" stroke="#B9B2A4" stroke-width="1.5"/>`},
+  emily:{
+    back:`<path d="M44 120 Q40 60 100 52 Q160 60 156 120 Q160 160 140 176 L60 176 Q40 160 44 120Z" fill="#B5652E"/>`,
+    top:`<path d="M48 96 Q50 50 100 48 Q150 50 152 96 Q130 64 100 66 Q70 64 48 96Z" fill="#B5652E"/><circle cx="100" cy="40" r="18" fill="#B5652E"/>`,
+    extra:`<g fill="none" stroke="#2B2F3A" stroke-width="3"><circle cx="80" cy="100" r="14"/><circle cx="120" cy="100" r="14"/><path d="M94 100 L106 100"/></g>`},
+  chef:{
+    top:`<path d="M50 90 Q50 56 100 54 Q150 56 150 90" fill="#3B2A20"/><path d="M62 64 Q44 34 72 30 Q80 8 100 16 Q120 8 128 30 Q156 34 138 64Z" fill="#FFFFFF" stroke="#C9CDD6" stroke-width="2"/><rect x="62" y="56" width="76" height="14" rx="3" fill="#FFFFFF" stroke="#C9CDD6" stroke-width="2"/>`,
+    extra:`<path d="M100 126 Q86 118 72 126 Q86 129 100 131 Q114 129 128 126 Q114 118 100 126Z" fill="#3B2A20"/>`}
+};
+function face(c,big){
+  const L=LOOK[c.acc]||{};
+  return `<svg viewBox="0 0 200 200" aria-hidden="true"><defs><clipPath id="cp-${c.id}${big?'b':''}"><circle cx="100" cy="100" r="98"/></clipPath></defs>
+  <g clip-path="url(#cp-${c.id}${big?'b':''})"><circle cx="100" cy="100" r="98" fill="${c.bg}"/>
+  ${L.back||""}<ellipse cx="100" cy="108" rx="52" ry="58" fill="${c.skin}"/>${L.top||""}
+  <g class="eyes"><ellipse cx="80" cy="100" rx="7" ry="9" fill="#1A1D2A"/><ellipse cx="120" cy="100" rx="7" ry="9" fill="#1A1D2A"/></g>
+  <ellipse cx="66" cy="122" rx="9" ry="5" fill="#E8572A" opacity=".25"/><ellipse cx="134" cy="122" rx="9" ry="5" fill="#E8572A" opacity=".25"/>
+  <ellipse ${big?'id="mouth"':''} cx="100" cy="138" rx="14" ry="3" fill="#5A1E1A"/>${L.extra||""}</g></svg>`;
+}
+
+/* ---------- picker ---------- */
+function renderPicker(){
+  $("chars").innerHTML="";
+  CHARS.forEach(c=>{
+    const b=document.createElement("button");b.className="card";b.type="button";
+    b.setAttribute("aria-pressed",c===S.char);
+    b.innerHTML=face(c)+`<b>${c.name}</b><span>${c.tag}</span>`;
+    b.onclick=()=>{S.char=c;renderPicker()};
+    $("chars").appendChild(b);
+  });
+  $("langs").innerHTML="";
+  Object.entries(LANGS).forEach(([k,l])=>{
+    const b=document.createElement("button");b.type="button";b.textContent=l.name;
+    b.setAttribute("aria-pressed",k===S.lang);
+    b.onclick=()=>{S.lang=k;renderPicker();fillVoices()};
+    $("langs").appendChild(b);
+  });
+}
+function voicesFor(lang){
+  const all=("speechSynthesis" in window)?speechSynthesis.getVoices():[];
+  return all.filter(v=>v.lang&&v.lang.toLowerCase().startsWith(lang));
+}
+function fillVoices(){
+  const vs=voicesFor(S.lang);const sel=$("voice");sel.innerHTML="";
+  const auto=document.createElement("option");auto.value="";auto.textContent="Авто (голос телефона)";sel.appendChild(auto);
+  vs.forEach(v=>{const o=document.createElement("option");o.value=v.voiceURI;o.textContent=v.name;sel.appendChild(o)});
+  sel.value=vs.some(v=>v.voiceURI===S.voiceURI)?S.voiceURI:"";
+  $("voiceHint").hidden=vs.length>0;
+}
+$("voice").onchange=e=>S.voiceURI=e.target.value;
+if("speechSynthesis" in window) speechSynthesis.onvoiceschanged=fillVoices;
+
+/* ---------- brain ---------- */
+let sample=null;
+(async()=>{try{if(window.claude&&claude.use){sample=await claude.use("sample")}}catch(e){}
+  if(sample) $("keyBox").querySelector("summary").textContent="Ключ Gemini (для APK, сейчас не нужен)";})();
+$("gkey").value=store.get("gkey")||"";
+$("gkey").onchange=e=>store.set("gkey",e.target.value.trim());
+
+function timersInfo(){
+  if(S.char.id!=="chef")return "";
+  const a=TIMERS.map(t=>t.label+" — "+(t.done?"уже звенит":"осталось "+fmt(t.end-Date.now())));
+  return "\nАктивные таймеры сейчас: "+(a.length?a.join("; "):"нет")+".";
+}
+function sysPrompt(){
+  return `${S.char.persona}${timersInfo()}\n${cur().rule}\n${S.char.rules||"Правила: отвечай коротко, 1–3 предложения, как в живом разговоре вслух. Без смайликов, без списков, без markdown. Никогда не говори, что ты ИИ или языковая модель, оставайся в роли."}`;
+}
+async function ask(){
+  const key=(store.get("gkey")||$("gkey").value||"").trim();
+  if(key){
+    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key="+encodeURIComponent(key),{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({systemInstruction:{parts:[{text:sysPrompt()}]},
+        contents:S.history.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}))})});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error?.message||"Gemini ответил ошибкой "+r.status);
+    return j.candidates?.[0]?.content?.parts?.map(p=>p.text).join("")||"…";
+  }
+  if(sample){
+    const msgs=S.history.map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+    msgs[0]={role:"user",content:`[Инструкция роли]\n${sysPrompt()}\n\n[Первое сообщение собеседника]\n${msgs[0].content}`};
+    const res=await sample(msgs,{cache:false,modelTier:"quick"});
+    return res.text.trim();
+  }
+  throw new Error("Нет мозга: вставь ключ Gemini в настройках на первом экране.");
+}
+
+/* ---------- voice out + mouth ---------- */
+let mouthTimer=null;
+function talk(on){
+  const m=$("mouth");if(!m)return;clearInterval(mouthTimer);
+  if(!on){m.setAttribute("ry",3);return}
+  mouthTimer=setInterval(()=>m.setAttribute("ry",3+Math.random()*13),90);
+}
+const NATIVE=!!(window.Android&&Android.ok);
+window.__ttsStart=()=>talk(true);
+window.__ttsEnd=()=>{talk(false);if(S.handsfree&&!$("chat").hidden)setTimeout(()=>listen(),400)};
+function speak(text){
+  text=text.replace(/\[TIMER[^\]]*\]/gi,"").trim();if(!text)return;
+  const code=/[а-яё]/i.test(text)&&!/[a-z]{4}/i.test(text.replace(/[а-яё\s]/gi,""))?"ru-RU":cur().code;
+  if(NATIVE){Android.speak(text,code,S.char.pitch,S.char.rate);return}
+  if(!("speechSynthesis" in window)){talk(true);setTimeout(()=>talk(false),Math.min(8000,text.length*60));return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=code;u.pitch=S.char.pitch;u.rate=S.char.rate;
+  const v=voicesFor(S.lang).find(v=>v.voiceURI===S.voiceURI)||voicesFor(S.lang)[0];if(v)u.voice=v;
+  u.onstart=()=>talk(true);u.onend=u.onerror=()=>talk(false);
+  speechSynthesis.speak(u);
+  setTimeout(()=>{if(!speechSynthesis.speaking)talk(false)},Math.min(20000,text.length*90+1500));
+}
+
+/* ---------- kitchen timers (chef only) ---------- */
+const TIMERS=[];let actx=null,beepTimer=null;
+function parseTimers(text){
+  if(S.char.id!=="chef")return false;
+  const re=/\[TIMER\s+(\d{1,3})(?::(\d{1,2}))?\s*(?:\|\s*([^\]]*))?\]/gi;let m,found=false;
+  while((m=re.exec(text))){const sec=(+m[1])*60+(+(m[2]||0));if(sec>0){addTimer(sec,(m[3]||"Таймер").trim());found=true}}
+  const re2=/\[TIMER_(ADD|SUB|STOP)\s*(\d{1,3})?(?::(\d{1,2}))?\s*(?:\|\s*([^\]]*))?\]/gi;
+  while((m=re2.exec(text))){
+    const op=m[1].toUpperCase(),sec=(+(m[2]||0))*60+(+(m[3]||0)),name=(m[4]||"").trim().toLowerCase();
+    let list;
+    if(op==="STOP"&&/^(все|всё|all|tutti|tutto)$/.test(name))list=TIMERS.slice();
+    else{const hit=TIMERS.filter(t=>name&&(t.label.toLowerCase().includes(name)||name.includes(t.label.toLowerCase())));
+      list=hit.length?hit:(TIMERS.length===1?TIMERS.slice():[])}
+    list.forEach(t=>{
+      if(op==="STOP")TIMERS.splice(TIMERS.indexOf(t),1);
+      else if(op==="ADD"){t.end=Math.max(t.end,Date.now())+sec*1000;t.total+=sec;t.done=false}
+      else{t.end-=sec*1000;t.total=Math.max(1,t.total-sec)}
+    });
+    if(list.length)found=true;
+  }
+  if(found)renderTimers();
+  return found;
+}
+function addTimer(sec,label){TIMERS.push({id:Date.now()+Math.random(),label,total:sec,end:Date.now()+sec*1000,done:false});renderTimers()}
+function fmt(ms){const s=Math.max(0,Math.ceil(ms/1000));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0")}
+function renderTimers(){
+  const box=$("timers");box.hidden=!TIMERS.length;box.innerHTML="";
+  TIMERS.forEach(t=>{
+    const d=document.createElement("div");d.className="timer"+(t.done?" done":"");d.dataset.id=t.id;
+    d.innerHTML='<div class="fill"></div><span class="t"></span><span class="n"></span><button type="button" data-a="plus" aria-label="Добавить минуту">+1</button><button type="button" data-a="x" aria-label="Убрать таймер">✕</button>';
+    d.querySelector(".n").textContent=t.label;
+    d.querySelector('[data-a="plus"]').onclick=()=>{t.end=Math.max(t.end,Date.now())+60000;t.total+=60;t.done=false;renderTimers()};
+    d.querySelector('[data-a="x"]').onclick=()=>{TIMERS.splice(TIMERS.indexOf(t),1);renderTimers()};
+    box.appendChild(d);
+  });tick();
+}
+function beep(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    [0,.25,.5].forEach(o=>{const g=actx.createGain(),osc=actx.createOscillator();osc.frequency.value=880;osc.connect(g);g.connect(actx.destination);
+      g.gain.setValueAtTime(.25,actx.currentTime+o);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+o+.2);osc.start(actx.currentTime+o);osc.stop(actx.currentTime+o+.22)})}catch(e){}
+  try{if(NATIVE&&Android.vibrate)Android.vibrate();else navigator.vibrate?.([300,150,300])}catch(e){}
+}
+const DONE={ru:"Время! {x} готово.",it:"Tempo scaduto! {x} è pronto.",en:"Time is up! {x} is ready."};
+function tick(){
+  const now=Date.now();let ringing=false;
+  TIMERS.forEach(t=>{
+    const el=document.querySelector('.timer[data-id="'+t.id+'"]');const left=t.end-now;
+    if(left<=0&&!t.done){t.done=true;if(el)el.classList.add("done");speak(DONE[lk()].replace("{x}",t.label))}
+    if(t.done)ringing=true;
+    if(el){el.querySelector(".t").textContent=t.done?"0:00":fmt(left);el.querySelector(".fill").style.width=(t.done?100:100-100*left/(t.total*1000))+"%"}
+  });
+  if(ringing&&!beepTimer){beep();beepTimer=setInterval(beep,2500)}
+  if(!ringing&&beepTimer){clearInterval(beepTimer);beepTimer=null}
+}
+setInterval(tick,250);
+
+/* ---------- chat ---------- */
+function add(cls,text){const d=document.createElement("div");d.className="msg "+cls;d.textContent=text;$("log").appendChild(d);$("log").scrollTop=1e9;return d}
+const GREET={ru:"Привет! Скажи что-нибудь. Шефу скажи, что хочешь приготовить.",it:"Ciao! Dimmi qualcosa. Allo chef dì cosa vuoi cucinare.",en:"Hi! Say something. Tell the chef what you want to cook."};
+const PH={ru:"Напиши сообщение…",it:"Scrivi un messaggio…",en:"Type a message…"};
+function openChat(){
+  $("pick").hidden=true;$("chat").hidden=false;
+  $("cName").textContent=S.char.name;$("cLang").textContent=cur().name+(S.char.forceLang?" · учим язык":"");
+  $("stage").innerHTML=face(S.char,true);$("log").innerHTML="";S.history=[];
+  $("text").placeholder=PH[lk()];
+  add("sys",S.char.greet?.[S.lang]||GREET[lk()]);
+  const ch=S.char.chips?.[lk()]||[];$("chips").innerHTML="";$("chips").hidden=!ch.length;
+  ch.forEach(t=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.onclick=()=>send(t);$("chips").appendChild(b)});
+  try{navigator.wakeLock?.request("screen").catch(()=>{})}catch(e){}
+  if("speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("")); // unlock audio on tap
+}
+$("start").onclick=openChat;
+$("back").onclick=()=>{try{speechSynthesis.cancel()}catch(e){}try{if(NATIVE){Android.stop();Android.stopListen()}}catch(e){}S.handsfree=false;$("hf").checked=false;talk(false);$("chat").hidden=true;$("pick").hidden=false};
+async function send(text){
+  text=text.trim();if(!text||S.busy)return;
+  S.busy=true;add("me",text);S.history.push({role:"user",text});
+  const wait=add("bot","…");
+  try{const a=await ask();const timersFound=parseTimers(a);wait.textContent=a.replace(/\[TIMER[^\]]*\]/gi,"").trim()||"⏱";if(timersFound&&!wait.textContent)wait.textContent="⏱";S.history.push({role:"model",text:a});speak(a)}
+  catch(e){wait.remove();S.history.pop();add("sys","Ошибка: "+(e.message||e.code||e))}
+  S.busy=false;
+}
+$("form").onsubmit=e=>{e.preventDefault();const t=$("text").value;$("text").value="";send(t)};
+
+/* ---------- voice in (works in the APK / normal Chrome) ---------- */
+function listen(){
+  if(!NATIVE||S.busy)return;
+  $("mic").classList.add("rec");Android.listen(cur().code);
+}
+window.__sttResult=t=>{$("mic").classList.remove("rec");send(t)};
+window.__sttError=m=>{$("mic").classList.remove("rec");add("sys",m)};
+window.__back=()=>{if(!$("chat").hidden)$("back").click();else Android.exit()};
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(NATIVE){
+  $("mic").hidden=false;$("hfWrap").hidden=false;
+  $("mic").onclick=()=>{if($("mic").classList.contains("rec")){Android.stopListen();$("mic").classList.remove("rec")}else listen()};
+  $("hf").onchange=e=>{S.handsfree=e.target.checked;if(S.handsfree)listen()};
+  $("voice").hidden=true;$("voiceHint").textContent="Голос берётся из настроек синтеза речи телефона.";
+  if(!store.get("gkey")){$("keyBox").open=true;$("keyBox").querySelector("summary").textContent="Ключ Gemini (обязательно)"}
+}else if(SR){
+  $("mic").hidden=false;let rec=null;
+  $("mic").onclick=()=>{
+    if(rec){rec.stop();return}
+    rec=new SR();rec.lang=cur().code;rec.interimResults=false;
+    $("mic").classList.add("rec");
+    rec.onresult=e=>send(e.results[0][0].transcript);
+    rec.onerror=e=>add("sys",e.error==="not-allowed"?"Микрофон здесь недоступен. В приложении (APK) он заработает, а пока пиши текстом.":"Микрофон: "+e.error);
+    rec.onend=()=>{rec=null;$("mic").classList.remove("rec")};
+    try{rec.start()}catch(e){rec=null;$("mic").classList.remove("rec")}
+  };
+}
+
+renderPicker();fillVoices();
+</script>
+</body></html>
